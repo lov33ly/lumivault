@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lumivault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --negro: #0a0a0a;
+    --blanco: #ffffff;
+    --gris-50: #f6f6f6;
+    --gris-100: #ececec;
+    --gris-400: #9a9a9a;
+    --gris-600: #5c5c5c;
+    --acento: #c8102e;
+    --font: "Helvetica Neue", Helvetica, "Europa Grotesk", Arial, sans-serif;
+    --mano: "Reenie Beanie", cursive;
+    --borde: 1px solid var(--negro);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font); color: var(--negro); background: var(--blanco); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  :focus-visible { outline: 2px solid var(--negro); outline-offset: 3px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* Foto pendiente: se ve prolijo hasta que cargues la imagen real */
+  .foto { position: relative; background: var(--gris-50); overflow: hidden; }
+  .foto.sin-foto img { display: none; }
+  .foto.sin-foto::after { content: attr(data-label); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gris-400); }
+  .foto.oscura.sin-foto { background: #3a2f2d; }
+  .foto.oscura.sin-foto::after { color: rgba(255,255,255,.35); }
+
+  /* Botones */
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 28px; background: var(--negro); color: var(--blanco); font-size: 12px; letter-spacing: .02em; border: var(--borde); transition: background .2s, color .2s; }
+  .btn:hover { background: var(--blanco); color: var(--negro); }
+  .btn.blanco { background: var(--blanco); color: var(--negro); border-color: var(--blanco); }
+  .btn.blanco:hover { background: transparent; color: var(--blanco); }
+  .btn.linea { background: var(--blanco); color: var(--negro); }
+  .btn.linea:hover { background: var(--negro); color: var(--blanco); }
+
+  /* Ticker */
+  .ticker { background: var(--negro); color: var(--blanco); font-size: 11px; height: 30px; overflow: hidden; display: flex; align-items: center; }
+  .ticker-in { display: flex; gap: 48px; white-space: nowrap; animation: correr 28s linear infinite; padding-left: 48px; }
+  .ticker-in span::before { content: "●"; font-size: 6px; vertical-align: middle; margin-right: 48px; opacity: .5; }
+  @keyframes correr { to { transform: translateX(-50%); } }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 30; background: var(--blanco); border-bottom: 1px solid var(--gris-100); }
+  .header-in { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 56px; padding: 0 24px; }
+  .logo { font-weight: 700; font-size: 20px; letter-spacing: -.04em; }
+  nav ul { display: flex; gap: 28px; list-style: none; font-size: 12px; }
+  nav a { padding: 6px 0; border-bottom: 1px solid transparent; }
+  nav a:hover { border-color: var(--negro); }
+  .acciones { display: flex; justify-content: flex-end; align-items: center; gap: 18px; font-size: 12px; }
+  .acciones svg { width: 18px; height: 18px; }
+  .menu-btn { display: none; }
+
+  /* Hero */
+  /* Banner: la foto tiene fondo blanco, así que se funde con la página.
+     Se muestra como máximo a su tamaño real (1200 px) para que no pierda nitidez. */
+  .hero { background: var(--blanco); }
+  .hero-in { position: relative; max-width: 1200px; margin: 0 auto; }
+  .hero-in img { width: 100%; height: auto; aspect-ratio: 1200/675; }
+  .hero-centro { position: absolute; top: 6%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 18px; color: var(--negro); }
+  .hero-centro h1 { font-size: min(11vw, 132px); font-weight: 700; letter-spacing: -.06em; line-height: .85; }
+
+  /* Rail de productos */
+  .seccion { padding: 56px 24px; }
+  .cabecera { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
+  .cabecera h2 { font-size: 28px; font-weight: 500; letter-spacing: -.03em; }
+  .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filtros button { height: 32px; padding: 0 14px; border: 1px solid var(--gris-100); font-size: 12px; border-radius: 20px; transition: all .2s; }
+  .filtros button:hover { border-color: var(--negro); }
+  .filtros button[aria-pressed="true"] { background: var(--negro); color: var(--blanco); border-color: var(--negro); }
+
+  .rail-wrap { position: relative; }
+  .rail { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 3 * 16px) / 4); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+  .rail::-webkit-scrollbar { display: none; }
+  .card { scroll-snap-align: start; display: flex; flex-direction: column; }
+  .card .foto { aspect-ratio: 4/5; margin-bottom: 12px; }
+  .galeria { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .galeria::-webkit-scrollbar { display: none; }
+  .slide { flex: 0 0 100%; scroll-snap-align: start; position: relative; background: var(--gris-50); }
+  .slide img { object-fit: contain; padding: 8%; }
+  .slide.uso.cover img { object-fit: cover; padding: 0; }
+  .slide.uso.contain { background: var(--blanco); }
+  .slide.sin-foto img { display: none; }
+  .g-flecha { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.9); display: grid; place-items: center; opacity: 0; transition: opacity .2s; }
+  .g-izq { left: 8px; } .g-der { right: 8px; }
+  .card .foto:hover .g-flecha:not([disabled]) { opacity: 1; }
+  .g-flecha[disabled] { pointer-events: none; }
+  .g-puntos { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; z-index: 2; pointer-events: none; }
+  .g-puntos span { width: 5px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.18); transition: background .2s, width .2s; }
+  .g-puntos span.on { background: var(--negro); width: 14px; border-radius: 3px; }
+  @media (hover: none) { .g-flecha { display: none; } }
+  .fav { position: absolute; top: 10px; right: 10px; z-index: 2; width: 30px; height: 30px; display: grid; place-items: center; }
+  .fav svg { width: 18px; height: 18px; fill: none; stroke: var(--negro); stroke-width: 1.4; transition: fill .2s; }
+  .fav[aria-pressed="true"] svg { fill: var(--negro); }
+  .etiqueta { position: absolute; top: 12px; left: 12px; z-index: 2; background: var(--negro); color: var(--blanco); font-size: 10px; padding: 3px 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .card-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .card h3 { font-size: 13px; font-weight: 500; line-height: 1.3; }
+  .marca { font-size: 11px; color: var(--gris-600); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .tonos { display: flex; gap: 4px; flex-shrink: 0; padding-top: 2px; }
+  .tonos button { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); position: relative; }
+  .tonos button[aria-pressed="true"]::after { content: ""; position: absolute; inset: -4px; border: 1px solid var(--negro); border-radius: 50%; }
+  .tono-nombre { font-size: 11px; color: var(--gris-600); margin-top: 4px; min-height: 16px; }
+  .card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; }
+  .precio { font-size: 14px; font-weight: 500; }
+  .card .btn { height: 30px; padding: 0 14px; font-size: 11px; }
+
+  .flecha { position: absolute; top: calc(50% - 60px); width: 38px; height: 38px; border-radius: 50%; background: var(--blanco); border: 1px solid var(--gris-100); display: grid; place-items: center; z-index: 3; transition: opacity .2s; }
+  .flecha:hover { border-color: var(--negro); }
+  .flecha.izq { left: -12px; } .flecha.der { right: -12px; }
+  .flecha[disabled] { opacity: 0; pointer-events: none; }
+  .progreso { height: 2px; background: var(--gris-100); margin-top: 26px; position: relative; }
+  .progreso span { position: absolute; top: 0; left: 0; height: 100%; background: var(--negro); width: 25%; transition: left .15s, width .15s; }
+
+  /* Split */
+  .split { display: grid; grid-template-columns: 1.15fr 1fr; background: var(--gris-50); }
+  .split .foto { aspect-ratio: 5/4; }
+  .split.tiktok { grid-template-columns: minmax(0, 560px) 1fr; justify-content: center; }
+  .split.tiktok .foto { aspect-ratio: 736/981; }
+  .split-txt { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(24px, 6vw, 96px); }
+  .split-txt h2 { font-size: clamp(28px, 3.2vw, 44px); font-weight: 400; letter-spacing: -.035em; line-height: 1.05; margin-bottom: 18px; }
+  .split-txt p { color: var(--gris-600); max-width: 340px; margin-bottom: 26px; }
+  .split.inv { grid-template-columns: 1fr 1.15fr; background: var(--blanco); }
+  .split.inv .foto, .split.inv .duo { order: 2; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; }
+  .duo .foto { aspect-ratio: 1400/1633; }
+  .split.inv .split-txt { align-items: flex-start; }
+
+  /* Marcas */
+  .marcas { border-top: 1px solid var(--gris-100); border-bottom: 1px solid var(--gris-100); display: grid; grid-template-columns: repeat(5, 1fr); }
+  .marcas button { height: 110px; font-size: clamp(16px, 2vw, 26px); letter-spacing: -.03em; border-right: 1px solid var(--gris-100); transition: background .2s, color .2s; }
+  .marcas button:last-child { border-right: 0; }
+  .marcas button:hover { background: var(--negro); color: var(--blanco); }
+  .m-elf { font-weight: 700; } .m-rare { font-weight: 300; letter-spacing: .12em !important; text-transform: uppercase; font-size: clamp(12px, 1.4vw, 17px) !important; } .m-rhode { font-weight: 400; } .m-pta { font-weight: 500; text-transform: uppercase; letter-spacing: .02em !important; } .m-huda { font-weight: 700; text-transform: uppercase; letter-spacing: -.01em !important; }
+
+  /* Comunidad */
+  .comunidad { background: var(--gris-50); padding: 80px 24px 90px; overflow: hidden; }
+  .com-titulo { text-align: right; max-width: 1000px; margin: 0 auto -20px; font-family: var(--mano); color: var(--acento); font-size: clamp(56px, 8vw, 110px); line-height: .8; transform: rotate(-4deg); position: relative; z-index: 2; }
+  .polaroids { display: flex; justify-content: center; gap: 0; max-width: 1000px; margin: 0 auto; }
+  .polaroid { background: var(--blanco); padding: 10px 10px 34px; box-shadow: 0 6px 24px rgba(0,0,0,.08); width: 32%; transition: transform .35s; }
+  .polaroid .foto { aspect-ratio: 1; }
+  .polaroid:nth-child(1) { transform: rotate(-5deg) translateY(30px); }
+  .polaroid:nth-child(2) { transform: rotate(2deg); margin: 0 -2%; z-index: 1; }
+  .polaroid:nth-child(3) { transform: rotate(4deg) translateY(16px); }
+  .polaroid:hover { transform: rotate(0) translateY(-6px) scale(1.03); z-index: 3; }
+  .polaroid .foto img { filter: grayscale(1); transition: filter .4s; }
+  .polaroid:nth-child(1) .foto img, .polaroid:hover .foto img { filter: none; }
+  .com-txt { max-width: 440px; margin: 60px auto 0; text-align: center; }
+  .com-txt p { margin-bottom: 22px; }
+  .xo { font-family: var(--mano); color: var(--acento); font-size: 44px; position: absolute; transform: rotate(-12deg); }
+
+  /* Footer */
+  footer { padding: 56px 24px 28px; border-top: 1px solid var(--gris-100); }
+  .foot { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 32px; margin-bottom: 56px; }
+  footer ul { list-style: none; font-size: 12px; }
+  footer li { margin-bottom: 8px; }
+  footer li a:hover { text-decoration: underline; }
+  footer h4 { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+  .news-txt { font-size: 12px; color: var(--gris-600); margin-bottom: 16px; max-width: 320px; }
+  .news-form { display: flex; border-bottom: var(--borde); }
+  .news-form input { flex: 1; border: 0; outline: 0; font: inherit; font-size: 13px; padding: 10px 0; min-width: 0; background: transparent; }
+  .news-form button { font-size: 12px; font-weight: 500; }
+  .check { display: flex; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--gris-600); align-items: flex-start; }
+  .legal { display: flex; justify-content: space-between; font-size: 11px; color: var(--gris-400); flex-wrap: wrap; gap: 10px; }
+
+  /* Carrito lateral */
+  .velo { position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 40; }
+  .velo.on { opacity: 1; pointer-events: auto; }
+  .panel { position: fixed; top: 0; right: 0; height: 100%; width: min(420px, 100%); background: var(--blanco); z-index: 50; transform: translateX(100%); transition: transform .35s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; }
+  .panel.on { transform: none; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; height: 56px; padding: 0 20px; border-bottom: 1px solid var(--gris-100); font-weight: 500; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 8px 20px; }
+  .item { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--gris-100); font-size: 12px; }
+  .item .foto { aspect-ratio: 4/5; }
+  .item .foto img { object-fit: contain; padding: 6%; }
+  .item .foto.sin-foto::after { font-size: 8px; padding: 4px; }
+  .cant { display: inline-flex; align-items: center; border: 1px solid var(--gris-100); margin-top: 8px; }
+  .cant button { width: 26px; height: 26px; }
+  .cant span { min-width: 20px; text-align: center; }
+  .quitar { font-size: 11px; text-decoration: underline; color: var(--gris-600); align-self: start; }
+  .panel-foot { padding: 20px; border-top: 1px solid var(--gris-100); }
+  .envio-barra { font-size: 12px; margin-bottom: 8px; }
+  .barra { height: 3px; background: var(--gris-100); margin-bottom: 18px; }
+  .barra span { display: block; height: 100%; background: var(--negro); transition: width .3s; }
+  .total { display: flex; justify-content: space-between; font-weight: 500; margin-bottom: 14px; }
+  .panel-foot .btn { width: 100%; height: 46px; }
+  .vacio { padding: 50px 0; text-align: center; color: var(--gris-600); }
+
+  /* Menú mobile */
+  .menu-panel { left: 0; right: auto; transform: translateX(-100%); }
+  .menu-panel ul { list-style: none; padding: 12px 20px; }
+  .menu-panel li a { display: block; padding: 14px 0; font-size: 22px; letter-spacing: -.03em; border-bottom: 1px solid var(--gris-100); }
+
+  /* Responsive */
+  @media (max-width: 1000px) {
+    .rail { grid-auto-columns: calc((100% - 2 * 16px) / 2.6); }
+    .marcas { grid-template-columns: repeat(3, 1fr); }
+    .marcas button:nth-child(3) { border-right: 0; }
+    .marcas button:nth-child(-n+3) { border-bottom: 1px solid var(--gris-100); }
+  }
+  @media (max-width: 760px) {
+    nav { display: none; }
+    .menu-btn { display: block; }
+    .header-in { padding: 0 16px; grid-template-columns: auto 1fr auto; gap: 14px; }
+    .header-in .logo { justify-self: center; }
+    .acciones .txt { display: none; }
+    /* En celular: nombre arriba, foto, botón abajo (sin tapar los productos) */
+    .hero-in { display: flex; flex-direction: column; align-items: center; padding: 28px 0 32px; }
+    .hero-centro { display: contents; }
+    .hero-centro h1 { order: 0; font-size: 19vw; position: relative; z-index: 1; padding-bottom: .1em; }
+    .hero-in img { order: 1; margin-top: -4vw; }
+    .hero-centro .btn { order: 2; margin-top: 8px; }
+    .seccion { padding: 40px 16px; }
+    .rail { grid-auto-columns: 68%; gap: 12px; }
+    .flecha { display: none; }
+    .split, .split.inv, .split.tiktok { grid-template-columns: 1fr; }
+    .split.inv .foto, .split.inv .duo { order: 0; }
+    .split-txt { padding: 36px 16px 44px; }
+    .marcas { grid-template-columns: 1fr 1fr; }
+    .marcas button { height: 80px; border-bottom: 1px solid var(--gris-100); }
+    .marcas button:nth-child(odd) { border-right: 1px solid var(--gris-100); }
+    .marcas button:nth-child(even) { border-right: 0; }
+    .marcas button:last-child { grid-column: 1 / -1; border-right: 0; border-bottom: 0; }
+    .comunidad { padding: 56px 16px 64px; }
+    .polaroid { padding: 6px 6px 22px; width: 36%; }
+    .com-titulo { margin-bottom: -6px; }
+    footer { padding: 44px 16px 24px; }
+    .foot { grid-template-columns: 1fr 1fr; }
+    .foot > div:last-child { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ticker" aria-label="Novedades">
+  <div class="ticker-in" id="ticker">
+    <span>Envío gratis desde $150.000</span><span>3 cuotas sin interés</span><span>Productos originales</span><span>Despachamos en 24 h hábiles</span>
+  </div>
+</div>
+
+<header>
+  <div class="header-in">
+    <button class="menu-btn" aria-label="Abrir menú" data-abre="menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h16M3 15h16"/></svg>
+    </button>
+    <a href="#" class="logo">lumivault</a>
+    <nav aria-label="Principal">
+      <ul>
+        <li><a href="#productos" data-filtro="Correctores">Correctores</a></li>
+        <li><a href="#productos" data-filtro="Rubores">Rubores</a></li>
+        <li><a href="#productos" data-filtro="Labios">Labios</a></li>
+        <li><a href="#marcas">Marcas</a></li>
+      </ul>
+    </nav>
+    <div class="acciones">
+      <button aria-label="Buscar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="6"/><path d="m12 12 5 5"/></svg></button>
+      <button aria-label="Favoritos"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 18 18"><path d="M9 16S1.5 11.5 1.5 6.2A3.8 3.8 0 0 1 9 4.4a3.8 3.8 0 0 1 7.5 1.8C16.5 11.5 9 16 9 16z"/></svg></button>
+      <button data-abre="carrito" aria-label="Abrir carrito"><span class="txt">Carrito </span>(<span id="contador">0</span>)</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-label="Portada">
+    <div class="hero-in">
+      <img src="img/banner.jpg" alt="Gloss, máscara de pestañas y pincel con polvo rosa" fetchpriority="high">
+      <div class="hero-centro">
+        <h1>lumivault</h1>
+        <a href="#productos" class="btn">Ver la tienda</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="productos" aria-labelledby="t-prod">
+    <div class="cabecera">
+      <h2 id="t-prod">Lo que más sale</h2>
+      <div class="filtros" role="group" aria-label="Filtrar por categoría" id="filtros"></div>
+    </div>
+    <div class="rail-wrap">
+      <button class="flecha izq" aria-label="Anteriores" id="izq"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 2 4 7l5 5"/></svg></button>
+      <div class="rail" id="rail" tabindex="0" aria-label="Productos"></div>
+      <button class="flecha der" aria-label="Siguientes" id="der"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 2 5 5-5 5"/></svg></button>
+    </div>
+    <div class="progreso" aria-hidden="true"><span id="prog"></span></div>
+  </section>
+
+  <section class="split tiktok" aria-labelledby="t-tiktok">
+    <div class="foto" data-label="Foto · img/editorial-tiktok.jpg"><img src="img/editorial-tiktok.jpg" alt="Compras de maquillaje sobre una alfombra rosa: Dior, Summer Fridays y Charlotte Tilbury" onerror="this.parentElement.classList.add('sin-foto')"></div>
+    <div class="split-txt">
+      <p class="marca">Pedidos especiales</p>
+      <h2 id="t-tiktok">¿Viste algo en TikTok<br>y lo querés?</h2>
+      <p>Escribinos y te lo traemos.</p>
+      <div><a href="#" class="btn" id="btn-wpp" target="_blank" rel="noopener">Nuestro WhatsApp</a></div>
+    </div>
+  </section>
+
+  <section class="marcas" id="marcas" aria-label="Marcas">
+    <button class="m-elf" data-marca="e.l.f.">e.l.f.</button>
+    <button class="m-rare" data-marca="Rare Beauty">Rare Beauty</button>
+    <button class="m-rhode" data-marca="rhode">rhode</button>
+    <button class="m-pta" data-marca="Patrick Ta">Patrick Ta</button>
+    <button class="m-huda" data-marca="Huda Beauty">Huda Beauty</button>
+  </section>
+
+  <section class="split inv" aria-labelledby="t-gloss">
+    <div class="duo">
+      <div class="foto"><img src="img/huda-tonos.jpg" alt="Tonos del Faux Filler: Glassy, Sugar Baby, Honey, Foxy, Posh, Bombshell y Coco"></div>
+      <div class="foto"><img src="img/huda-lip-pairings.jpg" alt="Lip pairings: nueve labios usando distintos tonos de Faux Filler"></div>
+    </div>
+    <div class="split-txt">
+      <p class="marca">Huda Beauty</p>
+      <h2 id="t-gloss">Faux Filler.<br>Más volumen, cero pegote.</h2>
+      <p>Brillo vidrio y efecto de labios más llenos. Se usa solo o arriba de tu labial favorito.</p>
+      <div><a href="#productos" class="btn" data-filtro="Labios">Ver tonos</a></div>
+    </div>
+  </section>
+
+  <section class="comunidad" aria-labelledby="t-com">
+    <h2 class="com-titulo" id="t-com">#lumigirls</h2>
+    <div class="polaroids">
+      <div class="polaroid"><div class="foto" data-label="img/comunidad-1.jpg"><img src="img/comunidad-1.jpg" alt="Clienta usando productos de lumivault" onerror="this.parentElement.classList.add('sin-foto')"></div></div>
+      <div class="polaroid"><div class="foto" data-label="img/comunidad-2.jpg"><img src="img/comunidad-2.jpg" alt="Pedido de lumivault abierto" onerror="this.parentElement.classList.add('sin-foto')"></div></div>
+      <div class="polaroid"><div class="foto" data-label="img/comunidad-3.jpg"><img src="img/comunidad-3.jpg" alt="Clienta con rubor rhode" onerror="this.parentElement.classList.add('sin-foto')"></div></div>
+    </div>
+    <div class="com-txt">
+      <p>Subí tu look con tu pedido y etiquetanos. Cada mes elegimos una foto y esa persona se lleva un producto de regalo.</p>
+      <a href="#" class="btn">Seguinos en Instagram</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">
+    <div>
+      <a href="#" class="logo">lumivault</a>
+    </div>
+    <ul>
+      <li><a href="#productos">Correctores</a></li>
+      <li><a href="#productos">Rubores</a></li>
+      <li><a href="#productos">Labios</a></li>
+    </ul>
+    <ul>
+      <li><a href="#">Envíos</a></li>
+      <li><a href="#">Cambios y devoluciones</a></li>
+      <li><a href="#">Medios de pago</a></li>
+      <li><a href="#">Instagram</a></li>
+      <li><a href="#">TikTok</a></li>
+    </ul>
+    <div>
+      <h4>Enterate antes</h4>
+      <p class="news-txt">Reposiciones, lanzamientos y preventas. Un mail cada tanto, nada de spam.</p>
+      <form class="news-form" id="news">
+        <label for="email" class="sr">Email</label>
+        <input id="email" type="email" placeholder="Email" required>
+        <button type="submit">Suscribirme</button>
+      </form>
+      <label class="check"><input type="checkbox" required form="news"> Acepto recibir mails de lumivault</label>
+    </div>
+  </div>
+  <div class="legal"><span>© 2026 lumivault</span><span>Hecho en Argentina</span></div>
+</footer>
+
+<!-- Carrito -->
+<div class="velo" id="velo"></div>
+<aside class="panel" id="carrito" aria-label="Carrito" aria-hidden="true">
+  <div class="panel-head"><span>Carrito (<span id="contador2">0</span>)</span><button data-cierra aria-label="Cerrar carrito">✕</button></div>
+  <div class="panel-body" id="items"></div>
+  <div class="panel-foot">
+    <div class="envio-barra" id="envio-txt"></div>
+    <div class="barra"><span id="envio-barra"></span></div>
+    <div class="total"><span>Subtotal</span><span id="subtotal">$0</span></div>
+    <button class="btn">Finalizar compra</button>
+  </div>
+</aside>
+
+<!-- Menú mobile -->
+<aside class="panel menu-panel" id="menu" aria-label="Menú" aria-hidden="true">
+  <div class="panel-head"><span class="logo">lumivault</span><button data-cierra aria-label="Cerrar menú">✕</button></div>
+  <ul>
+    <li><a href="#productos" data-filtro="Correctores">Correctores</a></li>
+    <li><a href="#productos" data-filtro="Rubores">Rubores</a></li>
+    <li><a href="#productos" data-filtro="Labios">Labios</a></li>
+    <li><a href="#marcas">Marcas</a></li>
+  </ul>
+</aside>
+
+<script>
+  // Catálogo de ejemplo: en Tiendanube estos datos salen del panel de productos.
+  // Tonos: nombres oficiales de cada marca (verificados oct-2026). Precios a confirmar.
+  // Cada tono: [nombre, color de la bolita, foto del producto, foto en uso, encaje de la foto en uso]
+  const productos = [
+    { id: 1, cat: "Correctores", marca: "e.l.f.", nombre: "Hydrating Camo Concealer", precio: 18900, etiqueta: "Más vendido",
+      tonos: [["Medium Warm", "#d2a47a", "elf-hc-medium-warm.png", "elf-hc-medium-warm-uso.jpg", "contain"],
+              ["Medium Sand", "#cfa27c", "elf-hc-medium-sand.png", "elf-hc-medium-sand-uso.jpg", "contain"],
+              ["Tan Neutral", "#b5835c", "elf-hc-tan-neutral.png", "elf-hc-tan-neutral-uso.jpg", "contain"],
+              ["Tan Sand", "#b98a63", "elf-hc-tan-sand.png", "elf-hc-tan-sand-uso.jpg", "contain"],
+              ["Tan Walnut", "#a3704a", "elf-hc-tan-walnut.png", "elf-hc-tan-walnut-uso.jpg", "contain"],
+              ["Deep Olive", "#85593a", "elf-hc-deep-olive.png", "elf-hc-deep-olive-uso.jpg", "contain"]] },
+    { id: 2, cat: "Correctores", marca: "e.l.f.", nombre: "16HR Camo Concealer", precio: 17900,
+      tonos: [["Medium Golden", "#cf9f6f", "elf-16-medium-golden.png", "elf-16-medium-golden-uso.jpg", "contain"],
+              ["Deep Caramel", "#8b5636", "elf-16-deep-caramel.png", "elf-16-deep-caramel-uso.jpg", "contain"]] },
+    { id: 3, cat: "Rubores", marca: "Rare Beauty", nombre: "Soft Pinch Liquid Blush", precio: 42900, etiqueta: "Nuevo",
+      tonos: [["Hope", "#c48a86", "rare-hope.jpg", "rare-hope-uso.jpg", "cover"]] },
+    { id: 4, cat: "Labios", marca: "rhode", nombre: "Peptide Lip Tint", precio: 32900, etiqueta: "Preventa",
+      tonos: [["Pretzel", "#b0756a", "rhode-pretzel.png", "rhode-pretzel-uso.jpg", "cover"],
+              ["Salty Tan", "#c08a74", "rhode-salty-tan.png", "rhode-salty-tan-uso.jpg", "cover"]] },
+    { id: 5, cat: "Rubores", marca: "Patrick Ta", nombre: "Mini Major Headlines Double-Take Crème & Powder Blush Duo", precio: 36900,
+      tonos: [["She Goes to the Gym", "#b8727a", "pta-gym.jpg", "pta-gym-uso.jpg", "cover"]] },
+    { id: 6, cat: "Labios", marca: "Huda Beauty", nombre: "Faux Filler Extra Shine Lip Gloss", precio: 34500,
+      tonos: [["Posh", "#c27c7c", "huda-posh.jpg", "huda-posh-uso.jpg", "cover"]] }
+  ];
+  const ENVIO_GRATIS = 150000;
+  const WHATSAPP = "5490000000000"; // TODO: tu número con código de país, sin + ni espacios
+  const fmt = n => "$" + n.toLocaleString("es-AR");
+  const $ = s => document.querySelector(s);
+  const sinFoto = "this.parentElement.classList.add('sin-foto')";
+
+  // Duplicar el ticker para que el loop sea continuo
+  $("#ticker").innerHTML += $("#ticker").innerHTML;
+
+  // Filtros
+  const cats = ["Todo", ...new Set(productos.map(p => p.cat))];
+  let filtro = "Todo", marca = null;
+  $("#filtros").innerHTML = cats.map(c => `<button aria-pressed="${c === "Todo"}" data-cat="${c}">${c}</button>`).join("");
+  $("#filtros").addEventListener("click", e => { const b = e.target.closest("button"); if (b) aplicar(b.dataset.cat, null); });
+
+  function aplicar(cat, m) {
+    filtro = cat; marca = m;
+    document.querySelectorAll("#filtros button").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === cat && !m));
+    $("#t-prod").textContent = m ? m : (cat === "Todo" ? "Lo que más sale" : cat);
+    pintar();
+  }
+
+  const tonoElegido = {};
+  const flechaSvg = d => `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="${d}"/></svg>`;
+  function pintar() {
+    const lista = productos.filter(p => marca ? p.marca === marca : (filtro === "Todo" || p.cat === filtro));
+    $("#rail").innerHTML = lista.map(p => {
+      const t = tonoElegido[p.id] ?? 0;
+      const slides = p.tonos.flatMap(([n, , prod, uso, fit]) => [
+        `<div class="slide"><img src="img/${prod}" alt="${p.marca} ${p.nombre} en ${n}" loading="lazy"></div>`,
+        `<div class="slide uso ${fit}"><img src="img/${uso}" alt="${n} aplicado" loading="lazy"></div>`
+      ]).join("");
+      return `
+      <article class="card" data-id="${p.id}">
+        <div class="foto">
+          ${p.etiqueta ? `<span class="etiqueta">${p.etiqueta}</span>` : ""}
+          <button class="fav" aria-label="Guardar ${p.nombre} en favoritos" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M9 16S1.5 11.5 1.5 6.2A3.8 3.8 0 0 1 9 4.4a3.8 3.8 0 0 1 7.5 1.8C16.5 11.5 9 16 9 16z"/></svg></button>
+          <div class="galeria" aria-label="Fotos de ${p.nombre}">${slides}</div>
+          <button class="g-flecha g-izq" aria-label="Foto anterior">${flechaSvg("M8 2 3 6l5 4")}</button>
+          <button class="g-flecha g-der" aria-label="Foto siguiente">${flechaSvg("m4 2 5 4-5 4")}</button>
+          <div class="g-puntos" aria-hidden="true">${p.tonos.map(() => "<span></span><span></span>").join("")}</div>
+        </div>
+        <div class="card-top">
+          <div><div class="marca">${p.marca}</div><h3>${p.nombre}</h3></div>
+          <div class="tonos" role="group" aria-label="Tonos">
+            ${p.tonos.map(([n, c], i) => `<button style="background:${c}" aria-label="${n}" title="${n}" aria-pressed="${i === t}" data-tono="${i}"></button>`).join("")}
+          </div>
+        </div>
+        <div class="tono-nombre">Tono: <span>${p.tonos[t][0]}</span> · ${p.tonos.length} ${p.tonos.length === 1 ? "tono" : "tonos"}</div>
+        <div class="card-bottom">
+          <span class="precio">${fmt(p.precio)}</span>
+          <button class="btn linea" data-agregar="${p.id}">Agregar</button>
+        </div>
+      </article>`;
+    }).join("");
+    document.querySelectorAll("#rail .card").forEach(card => {
+      const g = card.querySelector(".galeria");
+      g.querySelectorAll("img").forEach(img => img.onerror = () => img.parentElement.classList.add("sin-foto"));
+      g.scrollLeft = (tonoElegido[card.dataset.id] ?? 0) * 2 * g.clientWidth;
+      marcarSlide(card);
+      let timer;
+      g.addEventListener("scroll", () => { clearTimeout(timer); timer = setTimeout(() => marcarSlide(card), 60); }, { passive: true });
+    });
+    $("#rail").scrollLeft = 0;
+    actualizarRail();
+  }
+
+  // Foto visible -> tono elegido (y al revés en el click de las bolitas)
+  function marcarSlide(card, destino) {
+    const g = card.querySelector(".galeria");
+    if (card._destino != null && destino == null) {
+      if (Math.round(g.scrollLeft / g.clientWidth) !== card._destino) return; // todavía deslizando hacia el tono tocado
+      card._destino = null;
+    }
+    const i = destino ?? Math.round(g.scrollLeft / g.clientWidth);
+    const total = g.children.length;
+    const p = productos.find(x => x.id === +card.dataset.id);
+    const t = Math.floor(i / 2);
+    tonoElegido[p.id] = t;
+    card.querySelectorAll(".tonos button").forEach((b, k) => b.setAttribute("aria-pressed", k === t));
+    card.querySelector(".tono-nombre span").textContent = p.tonos[t][0];
+    card.querySelectorAll(".g-puntos span").forEach((d, k) => d.classList.toggle("on", k === i));
+    card.querySelector(".g-izq").disabled = i === 0;
+    card.querySelector(".g-der").disabled = i >= total - 1;
+  }
+  function irASlide(card, i) {
+    const g = card.querySelector(".galeria");
+    card._destino = i;
+    marcarSlide(card, i);
+    g.scrollTo({ left: i * g.clientWidth, behavior: "smooth" });
+  }
+
+  $("#rail").addEventListener("click", e => {
+    const card = e.target.closest(".card");
+    const tono = e.target.closest("[data-tono]");
+    if (tono) { irASlide(card, +tono.dataset.tono * 2); return; }
+    const gf = e.target.closest(".g-flecha");
+    if (gf) { const g = card.querySelector(".galeria"); irASlide(card, Math.round(g.scrollLeft / g.clientWidth) + (gf.classList.contains("g-der") ? 1 : -1)); return; }
+    const fav = e.target.closest(".fav");
+    if (fav) { fav.setAttribute("aria-pressed", fav.getAttribute("aria-pressed") !== "true"); return; }
+    const ag = e.target.closest("[data-agregar]");
+    if (ag) agregar(+ag.dataset.agregar, ag);
+  });
+
+  // Flechas y barra de progreso
+  const rail = $("#rail");
+  function actualizarRail() {
+    const max = rail.scrollWidth - rail.clientWidth;
+    const vis = rail.scrollWidth ? rail.clientWidth / rail.scrollWidth : 1;
+    $("#prog").style.width = (vis * 100) + "%";
+    $("#prog").style.left = (max > 0 ? rail.scrollLeft / max * (1 - vis) * 100 : 0) + "%";
+    $("#izq").disabled = rail.scrollLeft <= 2;
+    $("#der").disabled = rail.scrollLeft >= max - 2;
+  }
+  rail.addEventListener("scroll", actualizarRail, { passive: true });
+  window.addEventListener("resize", actualizarRail);
+  $("#izq").onclick = () => rail.scrollBy({ left: -rail.clientWidth * .8, behavior: "smooth" });
+  $("#der").onclick = () => rail.scrollBy({ left: rail.clientWidth * .8, behavior: "smooth" });
+
+  // Links que filtran
+  document.querySelectorAll("[data-filtro]").forEach(a => a.addEventListener("click", () => { aplicar(a.dataset.filtro, null); cerrar(); }));
+  document.querySelectorAll("[data-marca]").forEach(b => b.addEventListener("click", () => { aplicar("Todo", b.dataset.marca); $("#productos").scrollIntoView(); }));
+
+  // Carrito
+  const carrito = [];
+  function agregar(id, boton) {
+    const p = productos.find(x => x.id === id);
+    const tono = tonoElegido[id] ?? 0;
+    const it = carrito.find(x => x.id === id && x.tono === tono);
+    it ? it.cant++ : carrito.push({ id, tono, cant: 1 });
+    boton.textContent = "Agregado ✓";
+    setTimeout(() => boton.textContent = "Agregar", 1200);
+    pintarCarrito();
+    abrir("carrito");
+  }
+  function pintarCarrito() {
+    const cant = carrito.reduce((a, x) => a + x.cant, 0);
+    const sub = carrito.reduce((a, x) => a + x.cant * productos.find(p => p.id === x.id).precio, 0);
+    $("#contador").textContent = $("#contador2").textContent = cant;
+    $("#subtotal").textContent = fmt(sub);
+    const falta = ENVIO_GRATIS - sub;
+    $("#envio-txt").textContent = falta > 0 ? `Te faltan ${fmt(falta)} para el envío gratis` : "Tenés envío gratis";
+    $("#envio-barra").style.width = Math.min(100, sub / ENVIO_GRATIS * 100) + "%";
+    $("#items").innerHTML = carrito.length ? carrito.map((x, i) => {
+      const p = productos.find(q => q.id === x.id);
+      const [nTono, , foto] = p.tonos[x.tono];
+      return `<div class="item">
+        <div class="foto" data-label="${p.marca}"><img src="img/${foto}" alt="" onerror="${sinFoto}"></div>
+        <div><div class="marca">${p.marca}</div><div>${p.nombre}</div><div style="color:var(--gris-600)">${nTono}</div>
+          <div class="cant"><button data-menos="${i}" aria-label="Restar uno">−</button><span>${x.cant}</span><button data-mas="${i}" aria-label="Sumar uno">+</button></div></div>
+        <div style="text-align:right"><div>${fmt(p.precio * x.cant)}</div><button class="quitar" data-quitar="${i}">Quitar</button></div>
+      </div>`;
+    }).join("") : `<p class="vacio">Tu carrito está vacío.</p>`;
+  }
+  $("#items").addEventListener("click", e => {
+    const t = e.target.dataset;
+    if (t.mas) carrito[t.mas].cant++;
+    else if (t.menos) { if (--carrito[t.menos].cant === 0) carrito.splice(t.menos, 1); }
+    else if (t.quitar) carrito.splice(t.quitar, 1);
+    else return;
+    pintarCarrito();
+  });
+
+  // Paneles
+  function abrir(id) { cerrar(); $("#" + id).classList.add("on"); $("#" + id).setAttribute("aria-hidden", "false"); $("#velo").classList.add("on"); $("#" + id).querySelector("[data-cierra]").focus(); }
+  function cerrar() { document.querySelectorAll(".panel").forEach(p => { p.classList.remove("on"); p.setAttribute("aria-hidden", "true"); }); $("#velo").classList.remove("on"); }
+  document.querySelectorAll("[data-abre]").forEach(b => b.onclick = () => abrir(b.dataset.abre));
+  document.querySelectorAll("[data-cierra]").forEach(b => b.onclick = cerrar);
+  $("#velo").onclick = cerrar;
+  document.addEventListener("keydown", e => { if (e.key === "Escape") cerrar(); });
+
+  // Newsletter
+  $("#news").addEventListener("submit", e => { e.preventDefault(); e.target.innerHTML = '<span style="padding:10px 0;font-size:13px">Listo, ya estás en la lista.</span>'; });
+
+  // WhatsApp con mensaje ya escrito
+  $("#btn-wpp").href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola! Vi un producto en TikTok y lo quiero 💄")}`;
+
+  pintar();
+  pintarCarrito();
+</script>
+</body>
+</html>
